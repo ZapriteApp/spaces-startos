@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spaces</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="vendor/qrcode.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <!-- Login -->
+    <main id="login" class="login" hidden>
+      <form id="login-form" class="login-card">
+        <img src="icon.svg" alt="" class="login-logo" />
+        <h1>Spaces</h1>
+        <label for="password">Dashboard password</label>
+        <input id="password" type="password" autocomplete="current-password" required autofocus />
+        <button type="submit" class="primary">Log in</button>
+        <p id="login-error" class="error" role="alert"></p>
+        <p class="hint">Set or reset the password with the <b>Dashboard Password</b> action in StartOS.</p>
+      </form>
+    </main>
+
+    <!-- Dashboard -->
+    <div id="app" hidden>
+      <header class="topbar">
+        <div class="brand">
+          <img src="icon.svg" alt="" />
+          <span>Spaces</span>
+          <span id="network" class="badge"></span>
+        </div>
+        <div class="topbar-right">
+          <span id="sync" class="pill"></span>
+          <button id="logout" class="ghost">Log out</button>
+        </div>
+      </header>
+
+      <p id="banner" class="banner" role="alert" hidden></p>
+
+      <main class="grid">
+        <section class="card" id="wallet-card">
+          <div class="card-head">
+            <h2>Wallet</h2>
+            <button id="receive" class="secondary" hidden>Receive</button>
+          </div>
+          <div id="wallet-body"><p class="empty">Loading…</p></div>
+        </section>
+
+        <section class="card" id="trust-card">
+          <div class="card-head"><h2>Trust ID</h2></div>
+          <div id="trust-body"><p class="empty">Loading…</p></div>
+        </section>
+
+        <section class="card wide" id="spaces-card">
+          <div class="card-head">
+            <h2>My spaces</h2>
+            <button id="open-new" class="secondary">Open auction</button>
+          </div>
+          <div id="spaces-body"><p class="empty">Loading…</p></div>
+        </section>
+
+        <section class="card wide" id="auctions-card">
+          <div class="card-head"><h2>Auctions</h2></div>
+          <form id="lookup-form" class="lookup">
+            <input id="lookup-name" placeholder="Look up a space, e.g. @bitcoin" autocomplete="off" spellcheck="false" />
+            <button type="submit" class="secondary">Look up</button>
+          </form>
+          <div id="lookup-result"></div>
+          <div id="auctions-body"><p class="empty">Loading…</p></div>
+        </section>
+
+        <section class="card wide" id="activity-card">
+          <div class="card-head"><h2>Activity</h2></div>
+          <div id="activity-body"><p class="empty">Loading…</p></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal -->
+    <dialog id="modal">
+      <form method="dialog" id="modal-form">
+        <h3 id="modal-title"></h3>
+        <div id="modal-body"></div>
+        <p id="modal-error" class="error" role="alert"></p>
+        <div class="modal-actions" id="modal-actions"></div>
+      </form>
+    </dialog>
+  </body>
+</html>
