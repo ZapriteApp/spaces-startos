@@ -5,7 +5,7 @@ export const manifest = setupManifest({
   id: 'spaces',
   title: 'Spaces',
   license: 'MIT',
-  packageRepo: 'https://github.com/spacesprotocol/spaces',
+  packageRepo: 'https://github.com/ZapriteApp/spaces-startos',
   upstreamRepo: 'https://github.com/spacesprotocol/spaces',
   marketingUrl: 'https://spacesprotocol.org/',
   donationUrl: null,

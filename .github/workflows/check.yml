@@ -1,0 +1,26 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Typecheck package
+        run: npx tsc --noEmit
+      - name: Check formatting
+        run: npx prettier --config node_modules/@start9labs/start-sdk/prettier.config.json --check startos
+      - name: Check dashboard syntax
+        run: node --check ui/server.mjs && node --check ui/public/app.js

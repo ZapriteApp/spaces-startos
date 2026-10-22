@@ -4,7 +4,22 @@
 
 # Spaces on StartOS
 
-Unofficial StartOS package of [spaced](https://github.com/spacesprotocol/spaces), the Spaces protocol client. It is a personal sideload package, not published to a Start9 registry.
+Unofficial StartOS package of [spaced](https://github.com/spacesprotocol/spaces), the Spaces protocol client, with a web dashboard. It is not affiliated with Start9 or the Spaces developers, and is not published to a Start9 registry: build it and sideload it.
+
+## Building
+
+Requirements: Node.js, Docker with Buildx, and [start-cli](https://docs.start9.com/packaging/environment-setup.html).
+
+```bash
+npm ci
+# Once: a container-backed builder, which can export the OCI images StartOS needs
+docker buildx create --name start9 --driver docker-container
+# Packages are signed with .startos/build.key.pem (gitignored). Create one once:
+KEYHOME=$(mktemp -d) && HOME="$KEYHOME" start-cli init-key && mkdir -p .startos && cp "$KEYHOME/.startos/id.key.pem" .startos/build.key.pem
+BUILDX_BUILDER=start9 make
+```
+
+This produces `spaces_x86_64.s9pk` and `spaces_aarch64.s9pk`. In StartOS, go to **System → Sideload** and upload the one for your server's architecture. Requires StartOS 0.4.0.2+ and Bitcoin Core 31.1:17+ with pruning off.
 
 ## Image and Container Runtime
 

@@ -2,7 +2,7 @@
   "name": "spaces-startos",
   "dependencies": {
     "@start9labs/start-sdk": "3.1.0",
-    "bitcoin-core-startos": "github:Start9Labs/bitcoin-core-startos#next/31.x"
+    "bitcoin-core-startos": "git+https://github.com/Start9Labs/bitcoin-core-startos.git#next/31.x"
   },
   "overrides": {
     "@start9labs/start-sdk": "$@start9labs/start-sdk"
