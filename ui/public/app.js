@@ -6,7 +6,7 @@ const BLOCK_MINUTES = 10
 const REFRESH_MS = 30_000
 
 const $ = (id) => document.getElementById(id)
-let state = { tip: null, network: 'mainnet', hasWallet: false }
+let state = { tip: null, network: 'mainnet', hasWallet: false, explorer: null }
 let refreshTimer = null
 
 // ---------- helpers ----------
@@ -48,23 +48,105 @@ function qrImage(text) {
   return h('div', { class: 'qr' }, h('img', { src: qr.createDataURL(4, 0), alt: 'QR code' }))
 }
 
-function copyButton(text) {
-  const btn = h('button', { type: 'button', class: 'small secondary' }, 'Copy')
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+/** A 16px stroke icon from SVG path data (feather-style). */
+function icon(paths) {
+  const svg = document.createElementNS(SVG_NS, 'svg')
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: 16, height: 16, fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) {
+    svg.setAttribute(k, v)
+  }
+  for (const d of paths) {
+    const p = document.createElementNS(SVG_NS, 'path')
+    p.setAttribute('d', d)
+    svg.append(p)
+  }
+  return svg
+}
+const COPY_ICON = ['M9 9h11v11H9z', 'M5 15H4V4h11v1']
+const CHECK_ICON = ['M20 6 9 17l-5-5']
+
+/**
+ * Copies text. The Clipboard API needs a secure context and permission, so
+ * fall back to a selected textarea and execCommand where it is refused.
+ */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    return
+  } catch {}
+  const ta = h('textarea', { readonly: true, class: 'offscreen' })
+  ta.value = text
+  document.body.append(ta)
+  ta.select()
+  const ok = document.execCommand('copy')
+  ta.remove()
+  if (!ok) throw new Error('Copy failed')
+}
+
+/** Icon button that copies `text`, showing a check mark once copied. */
+function copyButton(text, label = 'Copy') {
+  const btn = h('button', { type: 'button', class: 'icon-btn', title: label, 'aria-label': label }, icon(COPY_ICON))
   btn.addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(text)
-      btn.textContent = 'Copied'
+      await copyText(text)
+      btn.replaceChildren(icon(CHECK_ICON))
+      btn.classList.add('done')
+      btn.title = 'Copied'
     } catch {
-      btn.textContent = 'Copy failed'
+      btn.title = 'Copy failed'
     }
-    setTimeout(() => (btn.textContent = 'Copy'), 1500)
+    setTimeout(() => {
+      btn.replaceChildren(icon(COPY_ICON))
+      btn.classList.remove('done')
+      btn.title = label
+    }, 1500)
   })
   return btn
 }
 
-function txLink(txid) {
-  if (state.network !== 'mainnet') return h('span', { class: 'mono' }, `${txid.slice(0, 10)}…`)
-  return h('a', { href: `https://mempool.space/tx/${txid}`, target: '_blank', rel: 'noopener noreferrer', class: 'mono' }, `${txid.slice(0, 10)}…`)
+/**
+ * Picks the local Mempool address to link to: the one on the hostname this
+ * page was opened on, else one of the same kind (LAN IP, .local, .onion).
+ */
+function pickExplorer(urls) {
+  if (!urls?.length) return null
+  const here = location.hostname
+  const kind = (host) =>
+    /^\d+\.\d+\.\d+\.\d+$/.test(host) ? 'ipv4' : host.endsWith('.onion') ? 'onion' : host.endsWith('.local') ? 'local' : host.includes(':') ? 'ipv6' : 'domain'
+  const parsed = urls
+    .map((u) => {
+      try {
+        return new URL(u)
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+    // Prefer https where StartOS serves both.
+    .sort((a, b) => (a.protocol === 'https:' ? -1 : 0) - (b.protocol === 'https:' ? -1 : 0))
+  const match =
+    parsed.find((u) => u.hostname === here) ??
+    parsed.find((u) => kind(u.hostname) === kind(here)) ??
+    parsed.find((u) => kind(u.hostname) !== 'onion') ??
+    parsed[0]
+  return match ? match.href.replace(/\/$/, '') : null
+}
+
+function explorerTxUrl(txid) {
+  if (state.explorer) return `${state.explorer}/tx/${txid}`
+  if (state.network === 'mainnet') return `https://mempool.space/tx/${txid}`
+  return null
+}
+
+/** A shortened txid linking to the explorer, with a copy button for the full id. */
+function txRef(txid) {
+  const short = `${txid.slice(0, 10)}…`
+  const url = explorerTxUrl(txid)
+  const label = url
+    ? h('a', { href: url, target: '_blank', rel: 'noopener noreferrer', class: 'mono', title: txid }, short)
+    : h('span', { class: 'mono', title: txid }, short)
+  return h('span', { class: 'txref' }, label, copyButton(txid, 'Copy transaction ID'))
 }
 
 async function api(path, body) {
@@ -149,6 +231,7 @@ function openModal({ title, fields, confirmLabel = 'Confirm', onConfirm, cancelL
 function renderStatus(status) {
   state.tip = status.server.tip.height
   state.network = status.network
+  state.explorer = pickExplorer(status.mempoolUrls)
   state.hasWallet = status.hasWallet
   $('network').textContent = status.network
   const { tip, chain, ready } = status.server
@@ -208,7 +291,7 @@ function renderTrust(trust) {
         'div',
         {},
         h('p', { class: 'hint' }, 'Scan in Nacho or another Spaces app so it verifies against this node.'),
-        h('div', { class: 'copy-row' }, h('span', { class: 'mono' }, hex), copyButton(hex)),
+        h('div', { class: 'copy-row' }, h('span', { class: 'mono' }, hex), copyButton(hex, 'Copy Trust ID')),
         h('p', { class: 'hint' }, `From block ${trust.latest.block.height.toLocaleString()}`),
       ),
     ),
@@ -414,7 +497,7 @@ function renderActivity(wallet) {
       h('td', {}, what),
       h('td', { class: 'num' }, `${net >= 0 ? '+' : '−'}${fmtSats(Math.abs(net))}`),
       h('td', { class: 'num muted' }, tx.fee === null ? '' : `fee ${tx.fee.toLocaleString()}`),
-      h('td', { class: 'actions' }, txLink(tx.txid)),
+      h('td', { class: 'actions' }, txRef(tx.txid)),
     )
   })
   body.replaceChildren(h('div', { class: 'table-wrap' }, h('table', {}, h('tbody', {}, rows))))
@@ -461,7 +544,7 @@ $('receive').addEventListener('click', async () => {
     openModal({
       title: 'Receive bitcoin',
       fields: [
-        h('div', { class: 'qr-block' }, qrImage(`bitcoin:${address}`), h('div', { class: 'copy-row' }, h('span', { class: 'mono' }, address), copyButton(address))),
+        h('div', { class: 'qr-block' }, qrImage(`bitcoin:${address}`), h('div', { class: 'copy-row' }, h('span', { class: 'mono' }, address), copyButton(address, 'Copy address'))),
         h('p', { class: 'hint' }, 'It shows in your balance after one confirmation.'),
       ],
       cancelLabel: 'Close',
@@ -509,7 +592,7 @@ function txModal(action, name = '', currentBid = 0) {
         title: 'Sent',
         fields: [
           h('p', {}, `Broadcast ${plural(txids.length, 'transaction')}. It shows as unconfirmed in Activity until it is mined.`),
-          ...txids.map((t) => h('div', {}, txLink(t))),
+          ...txids.map((t) => h('div', {}, txRef(t))),
         ],
         cancelLabel: 'Close',
       })

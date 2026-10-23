@@ -59,6 +59,8 @@ spaced's JSON-RPC listens on `127.0.0.1:7225` inside the container and is never 
 
 The dashboard requires the password in `store.json` (`UI_PASSWORD`), with in-memory sessions (HttpOnly, SameSite=Strict cookies, 12 h), JSON-only POSTs and a strict CSP. Fee rates are entered in sat/vB and sent to spaced as sat/kwu (x250).
 
+Transaction links go to the local Mempool when it is installed: main reads Mempool's `webui` addresses (`sdk.host.get`, not a declared dependency) into `MEMPOOL_URLS`, and the page picks the one on the same hostname it was opened on. Without Mempool they go to mempool.space.
+
 ## Installation and First-Run Flow
 
 A `seed-checkpoint` oneshot extracts the checkpoint into `/data/mainnet` when `root.sdb` is absent, so the first sync scans only from the checkpoint height to the tip.

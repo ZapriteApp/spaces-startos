@@ -11,6 +11,15 @@ const SPACED_URL = process.env.SPACED_URL ?? 'http://127.0.0.1:7225'
 const SPACED_COOKIE = process.env.SPACED_COOKIE ?? '/data/mainnet/.cookie'
 const PASSWORD = process.env.UI_PASSWORD ?? ''
 const NETWORK = process.env.SPACES_NETWORK ?? 'mainnet'
+// The local Mempool's addresses (one per hostname StartOS serves it on).
+const MEMPOOL_URLS = (() => {
+  try {
+    const urls = JSON.parse(process.env.MEMPOOL_URLS ?? '[]')
+    return Array.isArray(urls) ? urls.filter((u) => /^https?:\/\//.test(u)) : []
+  } catch {
+    return []
+  }
+})()
 const WALLET = 'default'
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url))
 
@@ -97,7 +106,13 @@ const api = {
     const server = await rpc('getserverinfo')
     const hasWallet = await walletExists()
     const wallet = hasWallet ? await walletRpc('walletgetinfo', []).catch(() => null) : null
-    return { network: NETWORK, server, hasWallet, wallet: wallet && { tip: wallet.tip, progress: wallet.progress, sync: wallet.sync } }
+    return {
+      network: NETWORK,
+      mempoolUrls: MEMPOOL_URLS,
+      server,
+      hasWallet,
+      wallet: wallet && { tip: wallet.tip, progress: wallet.progress, sync: wallet.sync },
+    }
   },
 
   'GET /api/trust': async () => {

@@ -11,6 +11,9 @@ import {
   chainDir,
   checkpointArchive,
   dataDir,
+  mempoolHostId,
+  mempoolInterfaceId,
+  mempoolUiPort,
   spacedCookie,
   spacedRpcPort,
   uiPort,
@@ -95,6 +98,21 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   // Restarts main when the password is set or rotated.
   const uiPassword = await storeJson.read((s) => s.uiPassword).const(effects)
+
+  // The local Mempool's addresses, for the dashboard's transaction links. Empty
+  // when Mempool is not installed or its host can't be read; the dashboard then
+  // falls back to mempool.space.
+  const mempoolUrls = await sdk.host
+    .get(
+      effects,
+      { packageId: 'mempool', hostId: mempoolHostId },
+      (host) =>
+        host?.bindings[mempoolUiPort]?.interfaces[
+          mempoolInterfaceId
+        ]?.addressInfo?.nonLocal.format('urlstring') ?? [],
+    )
+    .const()
+    .catch(() => [] as string[])
 
   const getServerInfo = async (): Promise<ServerInfo | null> => {
     const res = await spacesContainer.exec([
@@ -209,6 +227,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           PORT: String(uiPort),
           SPACED_URL: `http://127.0.0.1:${spacedRpcPort}`,
           SPACED_COOKIE: spacedCookie,
+          MEMPOOL_URLS: JSON.stringify(mempoolUrls),
           ...(uiPassword ? { UI_PASSWORD: uiPassword } : {}),
         },
       },

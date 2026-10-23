@@ -17,6 +17,15 @@ export const dataDir = '/data'
 export const chainDir = `${dataDir}/mainnet`
 export const spacedCookie = `${chainDir}/.cookie`
 
+/**
+ * Mempool's web UI, for transaction links. Mempool is not a dependency, so
+ * these mirror mempool-startos (startos/utils.ts, startos/interfaces.ts)
+ * rather than being imported.
+ */
+export const mempoolHostId = 'main'
+export const mempoolUiPort = 8080
+export const mempoolInterfaceId = 'webui'
+
 /** Baked into the image by the Dockerfile, verified against its pinned SHA-256. */
 export const checkpointArchive = '/opt/spaces/checkpoint.tar.gz'
 
